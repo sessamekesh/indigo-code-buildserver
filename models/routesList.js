@@ -44,7 +44,7 @@ RoutesList.prototype.addRoute = function (route, nickname) {
  * @param routeName {string} Either the endpoint value or the programmer-given nickname of the endpoint
  */
 RoutesList.prototype.getRoute = function (routeName) {
-    return this._routesMap[routeName];
+    return this._routesMap[routeName] || this._nicknamesMap[routeName];
 };
 
 /**

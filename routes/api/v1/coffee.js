@@ -14,7 +14,7 @@ var endpoint = new Route('/api/v1/coffee');
  */
 endpoint.get([], function (req, res) {
     res.writeHead(408, {'Content-Type': 'application/json'});
-    res.write(JSON.stringify({'error': "I'm a teapot"}));
+    res.write(JSON.stringify({'error': "I'm a teapot", "reference": "https://tools.ietf.org/html/rfc2324"}));
     res.end();
 });
 
@@ -24,7 +24,7 @@ endpoint.get([], function (req, res) {
  */
 endpoint.post([], [], 0, function (req, res, fields, files) {
     res.writeHead(408, {'Content-Type': 'application/json'});
-    res.write(JSON.stringify({'error': "I'm a teapot"}));
+    res.write(JSON.stringify({'error': "I'm a teapot", "reference": "https://tools.ietf.org/html/rfc2324"}));
     res.end();
 });
 

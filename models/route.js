@@ -27,7 +27,7 @@ var Route = function (endpoint) {
      * @type {string}
      * @private
      */
-    this._pathBase = config.hostname + ':' + config.port + endpoint;
+    this._pathBase = 'http://' + config.hostname + ':' + config.port + endpoint;
 
     /**
      * Function to call if this route encounters a get request
@@ -113,10 +113,11 @@ Route.prototype.post = function (expectedParams, expectedData, numFiles, method)
 };
 
 /**
- * @param paramList {{string: *}} Key-value set for the parameters that are passed to this route
+ * @param paramList {{string: *}=} Key-value set for the parameters that are passed to this route
  * @returns {string} URL that can be referenced to get the information described by paramList
  */
 Route.prototype.reverseRoute = function (paramList) {
+    paramList = paramList || {};
     return this._pathBase + '?' + querystring.stringify(paramList);
 };
 

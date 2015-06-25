@@ -13,6 +13,9 @@ var RoutesList = require('./models/routesList').RoutesList;
 // Routes...
 var routesList = new RoutesList();
 
+// Expose the routes list globally, so that other modules can use it.
+module.exports.routesList = routesList;
+
 // V0.1 REQUIRED ROUTES
 routesList.addRoute(require('./routes/api/v1/server-data'), config.endpoints.SERVER_DATA);
 routesList.addRoute(require('./routes/api/v1/build-system'), config.endpoints.BUILD_SYSTEM);
