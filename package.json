@@ -1,0 +1,12 @@
+{
+  "name": "IndigoCodeBuildserver",
+  "version": "0.0.0",
+  "author": "Sessamekesh (GitHub)",
+  "dependencies": {
+    "formidable": "^1.0.17"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sessamekesh/indigo-code-buildserver"
+  }
+}
