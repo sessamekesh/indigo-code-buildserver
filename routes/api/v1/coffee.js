@@ -13,7 +13,7 @@ var endpoint = new Route('/api/v1/coffee');
  * The assumption, however, is that you are using a teapot, as per tradition.
  */
 endpoint.get([], function (req, res) {
-    res.writeHead(408, {'Content-Type': 'application/json'});
+    res.writeHead(418, {'Content-Type': 'application/json'});
     res.write(JSON.stringify({'error': "I'm a teapot", "reference": "https://tools.ietf.org/html/rfc2324"}));
     res.end();
 });
@@ -23,7 +23,7 @@ endpoint.get([], function (req, res) {
  * See notes on GET method for notes on non-teapot based buildservers
  */
 endpoint.post([], [], 0, function (req, res, fields, files) {
-    res.writeHead(408, {'Content-Type': 'application/json'});
+    res.writeHead(418, {'Content-Type': 'application/json'});
     res.write(JSON.stringify({'error': "I'm a teapot", "reference": "https://tools.ietf.org/html/rfc2324"}));
     res.end();
 });
