@@ -122,6 +122,14 @@ config.port = "8080";
 config.hostname = require('os').hostname().split('.').shift();
 config.maxFields = 1000; // Maximum number of fields in a POST body
 
+/**
+ * Build Staging Directory
+ * This is the directory where all of the builds in the build queue will go.
+ *  This directory will be created if it does not already exist
+ * @type {string}
+ */
+config.buildStagingDirectory = './staging';
+
 config.maxFieldsSize = 2 * 1024 * 1024; // Maximum size of all fields combined (excluding files) in a POST body
 
 // Expose the configuration object to any Node source file that uses this one

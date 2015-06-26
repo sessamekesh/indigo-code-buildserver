@@ -6,9 +6,10 @@
 
 var http = require('http');
 var url = require('url');
+var fs = require('fs');
 
 var config = require('./config');
-var RoutesList = require('./models/routesList').RoutesList;
+var RoutesList = require('./routes/routesList').RoutesList;
 
 // Routes...
 var routesList = new RoutesList();
@@ -25,6 +26,16 @@ routesList.addRoute(require('./routes/api/v1/build'), config.endpoints.BUILD);
 
 // ADDITIONAL ROUTES
 routesList.addRoute(require('./routes/api/v1/coffee'), config.endpoints.COFFEE);
+
+// Make sure the staging area exists...
+try {
+    fs.mkdirSync(config.buildStagingDirectory);
+} catch (e) {
+    // If the error is that the directory already exists, that's cool. Just ignore it, we're fine.
+    if (e.code != 'EEXIST') {
+        throw e;
+    }
+}
 
 var server = http.createServer(function (req, res) {
     var pathname = url.parse(req.url).pathname;

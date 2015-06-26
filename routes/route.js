@@ -12,6 +12,7 @@ var http = require('http');
 var querystring = require('querystring');
 var url = require('url');
 var formidable = require('formidable');
+var fs = require('fs');
 
 /**
  * @param endpoint {string} Endpoint on which this route will listen. Example: '/api/v1/status'
@@ -80,12 +81,11 @@ var Route = function (endpoint) {
     this._postExpectedData = [];
 
     /**
-     * Expected number of files to be transmitted with the post request.
-     * The post request will fail if the incorrect number of files are uploaded.
-     * @type {number}
+     * Name of fields containing uploaded files that is expected
+     * @type {Array<string>}
      * @private
      */
-    this._postExpectedFileCount = 0;
+    this._postExpectedFileFields = [];
 };
 
 /**
@@ -103,12 +103,12 @@ Route.prototype.get = function (expectedParams, method) {
  * @param expectedParams {Array<string>=}
  * @param expectedData {Array<string>=}
  * @param numFiles {number}
- * @param method {function(req: object, res: object, fields: object, files: Array<object>)}
+ * @param method {function(req: object, res: object, fields: Array<string>, files: Array<string>)}
  */
 Route.prototype.post = function (expectedParams, expectedData, numFiles, method) {
     this._postExpectedParams = expectedParams;
     this._postExpectedData = expectedData;
-    this._postExpectedFileCount = numFiles;
+    this._postExpectedFileFields = numFiles;
     this._post = method;
 };
 
@@ -163,7 +163,23 @@ Route.prototype.routePost = function (req, res) {
     var i; /** @type {number} */
     var queryparams; /** @type {{string: *}} */
     var missingParams = []; /** @type {Array<string>} */
+    var unexpectedFiles = []; /** @type {Array<{string: File}>} */
     var me = this; /** @this {Route} */
+
+    /**
+     * If an error occurs, use this function to clean up files that were uploaded and not needed
+     * @param files {{string: File}}
+     */
+    function deleteFiles(files) {
+        for (var file in files) {
+            if (files.hasOwnProperty(file)) {
+                fs.unlink(files[file].path, function (uerr) {
+                    uerr && console.log('/routes/route.js: Error deleting file "' + files[file].path + '" from POST request: ' + uerr.message);
+                });
+            }
+        }
+    }
+
     if (this._post) {
         queryparams = url.parse(req.url, true).query;
         for (i = 0; i < this._postExpectedParams.length; i++) {
@@ -175,7 +191,7 @@ Route.prototype.routePost = function (req, res) {
         if (missingParams.length === 0) {
 
             var form = new formidable.IncomingForm();
-            form.uploadDir = '/';
+            form.uploadDir = config.buildStagingDirectory;
             form.maxFieldsSize = 2 * 1024 * 1024; // 2MB max
             form.multiples = true;
 
@@ -184,27 +200,71 @@ Route.prototype.routePost = function (req, res) {
                     res.writeHead(500, {'Content-Type': 'application/json'});
                     res.write(JSON.stringify({'error': 'Internal server error (check logs)'}));
                     res.end();
+                    deleteFiles(files);
                     console.log('An error occurred in route ' + me.endpoint + ': ' + err.message);
-                } else if (files.length !== me._postExpectedFileCount) {
-                    res.writeHead(400, {'Content-Type': 'application/json'});
-                    res.write(JSON.stringify({
-                        'error': 'Unexpected number of files provided.' +
-                          'Expected: ' + me._postExpectedFileCount +
-                          ', Provided: ' + files.length}));
-                    res.end();
                 } else {
-                    for (i = 0; i < me._postExpectedData.length; i++) {
-                        if (!fields.hasOwnProperty(me._postExpectedData[i])) {
-                            missingParams.push(me._postExpectedData);
+                    // Make sure all files are in place...
+                    for (i = 0; i < me._postExpectedFileFields.length; i++) {
+                        if (!files.hasOwnProperty(me._postExpectedFileFields[i])) {
+                            missingParams.push(me._postExpectedFileFields[i]);
                         }
                     }
 
-                    if (missingParams.length === 0) {
-                        me._post(req, res, fields, files);
-                    } else {
+                    // Unlike the other systems, no additional files are accepted, and will cause the request to fail
+                    for (var file in files) {
+                        if (files.hasOwnProperty(file)) {
+                            var isContained = false;
+                            for (i = 0; i < me._postExpectedFileFields.length; i++) {
+                                if (me._postExpectedFileFields[i] === file) {
+                                    isContained = true;
+                                }
+                            }
+
+                            if (!isContained) {
+                                unexpectedFiles.push({paramName: file, offender: file});
+                            }
+                        }
+                    }
+
+                    if (unexpectedFiles.length > 0) {
+                        for (i = 0; i < unexpectedFiles.length; i++) {
+                            fs.unlink(unexpectedFiles[i].offender.path, function (uerr) {
+                                uerr && console.log('/routes/route.js: Error deleting unexpected file with param name ' + unexpectedFiles[i].paramName + ': ' + uerr.message);
+                            });
+                        }
                         res.writeHead(400, {'Content-Type': 'application/json'});
-                        res.write(JSON.stringify({'error': 'Missing required data in POST body', 'missingData': missingParams}));
+                        res.write(JSON.stringify({
+                            'error': 'Unexpected file uploads received',
+                            'offender_list': unexpectedFiles.map(function (a) { return a.paramName })
+                        }));
                         res.end();
+                    } else {
+                        if (missingParams.length === 0) {
+                            for (i = 0; i < me._postExpectedData.length; i++) {
+                                if (!fields.hasOwnProperty(me._postExpectedData[i])) {
+                                    missingParams.push(me._postExpectedData);
+                                }
+                            }
+
+                            if (missingParams.length === 0) {
+                                me._post(req, res, fields, files);
+                            } else {
+                                res.writeHead(400, {'Content-Type': 'application/json'});
+                                res.write(JSON.stringify({
+                                    'error': 'Missing required data in POST body',
+                                    'missingData': missingParams
+                                }));
+                                res.end();
+                                deleteFiles(files);
+                            }
+                        } else {
+                            res.writeHead(400, {'Content-Type': 'application/json'});
+                            res.write(JSON.stringify({
+                                'error': 'Missing required file uploads', 'missingFiles': missingParams
+                            }));
+                            res.end();
+                            deleteFiles(files);
+                        }
                     }
                 }
             });
@@ -213,6 +273,7 @@ Route.prototype.routePost = function (req, res) {
             res.writeHead(400, {'Content-Type': 'application/json'});
             res.write(JSON.stringify({'error': 'Missing required parameters', 'missingParams': missingParams}));
             res.end();
+            deleteFiles(files);
         }
     } else {
         // If the post endpoint is null, that means it was specifically set as null... So, the programmer

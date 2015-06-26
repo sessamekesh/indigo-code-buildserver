@@ -3,7 +3,7 @@
  */
 
 var config = require('../../../config');
-var Route = require('../../../models/route').Route;
+var Route = require('../../route').Route;
 var endpoint = new Route('/api/v1/server-data');
 var routesList = require('../../../index').routesList;
 

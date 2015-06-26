@@ -31,3 +31,6 @@ npm-debug.log
 
 # WebStorm stuff
 .idea
+
+# Visual Studio Code stuff
+.settings

@@ -2,7 +2,7 @@
  * Created by Kamaron on 6/24/2015.
  */
 
-var Route = require('../../../models/route').Route;
+var Route = require('../../route').Route;
 
 var endpoint = new Route('/api/v1/build-status');
 
