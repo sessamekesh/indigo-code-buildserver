@@ -93,7 +93,7 @@ QUICK NOTE:
             * Detailed description of this build system.
    * Response (404 Not Found)
       * Happens if a name was provided, but no system with that name was found
-      * error: “Build system with given name not found”
+      * error: “Comparison system with given name not found”
    * Response (400 Bad Request)
       * Happens if the name parameter is given, but empty
       * error: “Name parameter found, but contains invalid content (check to see if a name was actually provided?)”

@@ -128,10 +128,10 @@ Route.prototype.reverseRoute = function (paramList) {
  */
 Route.prototype.routeGet = function (req, res) {
     var i; /** @type {number} */
-    var queryparams; /** @type {{string: *}} */
     var missingParams = []; /** @type {Array<string>} */
     if (this._get) {
         queryparams = url.parse(req.url, true).query;
+        req.queryparams = queryparams;
         for (i = 0; i < this._getExpectedParams.length; i++) {
             if (!queryparams.hasOwnProperty(this._getExpectedParams[i])) {
                 missingParams.push(this._getExpectedParams[i]);

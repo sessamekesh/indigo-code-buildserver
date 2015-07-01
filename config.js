@@ -122,6 +122,24 @@ config.port = "8080";
 config.hostname = require('os').hostname().split('.').shift();
 config.maxFields = 1000; // Maximum number of fields in a POST body
 
+/*
+  RESULTS INTERFACE DEFINITION
+
+  This is required by the v0.1 standard - put all possible build results here.
+  This is what the project using this build server should expect in its results.
+
+  Modifications to the minor version of the standard should NOT take place here!
+ */
+
+config.BUILD_RESULT = {
+    CORRECT_ANSWER: 'AC',
+    TIME_LIMIT_EXCEEDED: 'TLE',
+    BUILD_ERROR: 'BE',
+    INTERNAL_SERVER_ERROR: 'IE',
+    RUNTIME_ERROR: 'RE',
+    WRONG_ANSWER: 'WA'
+};
+
 /**
  * Build Staging Directory
  * This is the directory where all of the builds in the build queue will go.
