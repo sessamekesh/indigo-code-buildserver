@@ -118,5 +118,13 @@ BuildManager.prototype.performBuild = function (buildEntry, cb) {
     // Step 5: Perform build! Invoke callback with the build ID.
 };
 
+/**
+ * Return the number of currently executing builds
+ * @return {number}
+ */
+BuildManager.prototype.numExecutingBuilds = function () {
+    return this._nBuilds;
+};
+
 module.exports.BuildManager = new BuildManager();
 module.exports.ERRORS = ERRORS;

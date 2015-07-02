@@ -64,6 +64,20 @@ BuildQueue.prototype.getQueueLength = function () {
     return this._pendingBuilds.length;
 };
 
+/**
+ * @return {boolean}
+ */
+BuildQueue.prototype.isReady = function () {
+    return this._pendingBuilds.length < this._maxSize;
+};
+
+/**
+ * @return {number}
+ */
+BuildQueue.prototype.capacity = function () {
+    return this._maxSize;
+};
+
 // Expose data about possible errors...
 module.exports.ERRORS = ERRORS;
 
