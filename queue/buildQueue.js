@@ -9,6 +9,7 @@
 
 var config = require('../config');
 var BuildEntry = require('./buildEntry').BuildEntry;
+var BuildManager = require('../build/buildManager').BuildManager;
 
 var ERRORS = {
     QUEUE_FULL: "Cannot add to build queue - queue is full",
@@ -40,6 +41,7 @@ BuildQueue.prototype.push = function (buildEntry) {
     if (buildEntry.isValid()) {
         if (this._pendingBuilds.length < this._maxSize) {
             this._pendingBuilds.push(buildEntry);
+            BuildManager.notifyBuildReady();
             return true;
         } else {
             return new Error(ERRORS.QUEUE_FULL);

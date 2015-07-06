@@ -134,6 +134,7 @@ QUICK NOTE:
                * comparisonSystemName
                * exposeData: {boolean}
                   * True if actual test case information can be used in error messages, e.g., “Failed on line 25: expected 3.2, got 32”
+            * time_limit: Time, in milliseconds, that a test case has to run
          * source
             * Source code file from user. Only one is allowed.
          * test-cases (directory)
@@ -149,6 +150,10 @@ QUICK NOTE:
       * results: {hypermedia}
          * Hypermedia resource that references the address at which the results of this build can be found.
          * The build can be polled some time after finishing, or before it finishes, at which point the request will take quite awhile.
+      * queueSize: {number}
+         * Length of the build queue
+      * success: {boolean}
+         * True if successfully started the build
    * Response (400 Invalid Request)
       * Send this response if the build request cannot be queued, because something is missing
       * errors: {Array<string>}
@@ -163,6 +168,8 @@ QUICK NOTE:
       * Send the results of the build, any notes, etc.
       * Note: If the build has not yet finished, wait for it to finish before sending this request.
       * NEXT VERSION: Perhaps it would be good to implement a timeout here…
+      * resultCode: {string}
+         * Irrelevant to the major standard, what the internal code result was
       * result: {enum}
          * CORRECT_ANSWER
          * TIME_LIMIT_EXCEEDED
@@ -170,8 +177,11 @@ QUICK NOTE:
          * INTERNAL_SERVER_ERROR
          * RUNTIME_ERROR
          * WRONG_ANSWER
+         * UNKNOWN_CODE (used in minor version extensions only - DO NOT ADD TO ENUM for minor versions)
       * notes: {string}
          * Notes from the build server, human readable. May contain error messages from test cases.
+      * optionalParams: {object}
+         * Optional params (may be used in minor versions, unused in v0.1.1 standard)
       * NEXT VERSION: Also include badges awarded! Seriously, I think that’d be fun. But, again, I’m just trying to get this to work now.
    * Response: (404 Not Found)
       * Send if there is no build with the given ID found on the server

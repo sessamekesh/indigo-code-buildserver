@@ -103,13 +103,13 @@ config.buildConstraints.resultsAvailabilityTimeout = 1000 * 60 * 15; // 15 minut
  NICKNAMES FOR REQUIRED SERVER ENDPOINTS
  */
 
-config.endpoints = {};
-
-config.endpoints.SERVER_DATA = 'ServerData';
-config.endpoints.BUILD_SYSTEM = 'BuildSystem';
-config.endpoints.COMPARISON_SYSTEM = 'ComparisonSystem';
-config.endpoints.BUILD_STATUS = 'BuildStatus';
-config.endpoints.BUILD = 'Build';
+config.endpoints = {
+    SERVER_DATA: 'ServerData',
+    BUILD_SYSTEM: 'BuildSystem',
+    COMPARISON_SYSTEM: 'ComparisonSystem',
+    BUILD_STATUS: 'BuildStatus',
+    BUILD: 'Build'
+};
 
 // This one isn't actually required by the v0.1 standard. It is included to show how additional endpoints may be added.
 //  To see everywhere this endpoint affects, search the word 'Coffee' throughout the repository.
@@ -147,6 +147,15 @@ config.BUILD_RESULT = {
  * @type {string}
  */
 config.buildStagingDirectory = './staging';
+
+/**
+ * Build Sandbox Directory
+ * This is a sandbox directory for builds, generated files should go here.
+ *  It would be a good idea for each method/module to create its own folder within
+ *  the sandbox directory, to prevent collisions. Name them uniquely.
+ * @type {string}
+ */
+config.buildSandboxDirectory = './sandbox';
 
 config.maxFieldsSize = 2 * 1024 * 1024; // Maximum size of all fields combined (excluding files) in a POST body
 

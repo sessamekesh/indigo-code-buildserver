@@ -1,0 +1,2 @@
+This directory is where binaries required for this project should be placed, if they are not included on the build
+  server. Example: javac, java, g++ binaries.

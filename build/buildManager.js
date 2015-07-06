@@ -15,15 +15,25 @@
  * - Maintain a registry of valid comparisonSystems
  */
 
-var BuildSystem = require('./buildSystem').BuildSystem;
+// TODO KAM: You're never cleaning up the sandbox directory! You need to do that!!!
+
+var BuildSystem;
 var ComparisonSystemManager = require('./comparisonManager').ComparisonSystemManager;
 var BuildEntry = require('../queue/buildEntry').BuildEntry;
+var config = require('../config');
+var tar = require('tar-fs');
+var fs = require('fs');
+var TestCase = require('./testCaseDescription').TestCaseDescription;
+var BuildQueue;
 
 var COMPARISON_ERRORS = require('./comparisonManager').ERRORS;
 
 var ERRORS = {
     ID_NOT_AVAILABLE: 'There is already a build system with the given ID',
-    ID_NOT_RECOGNIZED: 'There is no build system found with the given ID'
+    ID_NOT_RECOGNIZED: 'There is no build system found with the given ID',
+    TOO_MANY_BUILDS: 'Too many builds are currently running. Please wait',
+    COMPARE_ID_NOT_RECOGNIZED: 'A comparison system was not recognized',
+    MALFORMED_PACKAGE: 'The package tarball received was malformed'
 };
 
 /**
@@ -51,6 +61,14 @@ var BuildManager = function () {
      * @private
      */
     this._buildSystemIDs = [];
+
+    /**
+     * Whether or not to notify automagically fetch from the build queue again when the number
+     *  of builds goes down (aka, when a build finishes)
+     * @type {boolean}
+     * @private
+     */
+    this._notifyWhenDecreased = false;
 };
 
 /**
@@ -102,20 +120,127 @@ BuildManager.prototype.getBuildSystemIDs = function () {
  * Validates and performs build described in buildEntry
  * @param buildEntry {BuildEntry}
  * @param cb {function(err: Error=, buildID: string=)} Callback to invoke with the build ID when the build has begun
+ * @private
  */
-BuildManager.prototype.performBuild = function (buildEntry, cb) {
-    // TODO KAM: Implement this :-)
+BuildManager.prototype._performBuild = function (buildEntry, cb) {
+    /** @type {number} */
+    var i;
+    /** @type {boolean} */
+    var passing;
+    /** @type {string} */
+    var dir = config.buildSandboxDirectory + '/' + buildEntry.buildID;
 
-    cb(new Error('I actually have not implemented this yet! How exciting!'));
+    var tarSource, tarDest;
+    var me = this;
+
+    // Step 0: Make sure we aren't already over-building, and if we are, reject the build
+    if (this._nBuilds >= config.buildConstraints.maxConcurrentTests) {
+        cb(new Error(ERRORS.TOO_MANY_BUILDS));
+        return;
+    }
 
     // Step 1: Make sure the build system is registered
+    if (!this.exists(buildEntry.buildSystemName)) {
+        cb(new Error(ERRORS.ID_NOT_RECOGNIZED));
+        return;
+    }
+
     // Step 2: Make sure the required comparison systems are present
+    passing = true;
+    for (i = 0; passing && i < buildEntry.comparisonSystemsRequired.length; i++) {
+        passing = passing && ComparisonSystemManager.exists(buildEntry.comparisonSystemsRequired[i]);
+        if (!passing) {
+            console.log('BuildManager: Invalid comparison system required: ' + buildEntry.comparisonSystemsRequired[i]);
+        }
+    }
+
+    if (!passing) {
+        cb(new Error(ERRORS.COMPARE_ID_NOT_RECOGNIZED));
+        return;
+    }
+
     // Step 3: Unpack the package file
+    fs.mkdir(dir);
+    tarSource = fs.createReadStream(buildEntry.packageFileData.path);
+    tarDest = tar.extract(dir);
+    tarSource.pipe(tarDest);
+    tarDest.on('finish', function () {
+        step4();
+    });
 
     // Step 4: Make sure that all test cases described in info.json are present, no more and no less
-    //  Also make sure that all comparison systems are, in fact, valid.
+    function step4() {
+        var infoStream = fs.createReadStream(dir + '/info.json');
+        var infoData = '';
+        var info = {};
+
+        infoStream.on('error', function (err) {
+            console.log('Error opening ' + dir + '/info.json: ' + JSON.stringify(err));
+            cb(new Error(ERRORS.MALFORMED_PACKAGE));
+        });
+        infoStream.on('data', function (chunk) {
+            infoData += chunk.toString();
+        });
+        infoStream.on('end', function () {
+            try {
+                info = JSON.parse(infoData);
+                checkFile();
+            } catch (e) {
+                console.log('Error parsing ' + dir + '/info.json: ' + JSON.stringify(e));
+                cb(new Error(ERRORS.MALFORMED_PACKAGE));
+            }
+
+            // Go through test cases, make sure they exist...
+            function checkFile(i) {
+                i = i || 0;
+
+                if (i >= info.test_cases.length) {
+                    fs.stat(dir + '/source', function (err) {
+                        if (err) {
+                            console.log('Could not find source data in ' + dir);
+                            cb(new Error(ERRORS.MALFORMED_PACKAGE));
+                        } else {
+                            step5(info);
+                        }
+                    });
+                } else {
+                    fs.stat(dir + '/test-cases/' + info.test_cases[i].id + '.in', function (err) {
+                        if (err) {
+                            console.log('Test case input with id ' + info.test_cases[i].id + ' not found in ' + dir);
+                            cb(new Error(ERRORS.MALFORMED_PACKAGE));
+                        } else {
+                            fs.stat(dir + '/test-cases/' + info.test_cases[i].id + '.out', function (err2) {
+                                if (err2) {
+                                    console.log('Test case output with id ' + info.test_cases[i].id + ' not found!');
+                                    cb(new Error(ERRORS.MALFORMED_PACKAGE));
+                                } else {
+                                    checkFile(i + 1);
+                                }
+                            });
+                        }
+                    });
+                }
+            }
+        });
+    }
 
     // Step 5: Perform build! Invoke callback with the build ID.
+    function step5(info) {
+        cb(null, me._buildSystemRegistry[buildEntry.buildSystemName].performBuild(
+            buildEntry.buildID,
+            { path: dir + '/source' },
+            info.test_cases.map(function (tc) {
+                // TODO: Return test case
+                return new TestCase(
+                    { path: dir + '/test-cases/' + tc.id + '.in' },
+                    { path: dir + '/test-cases/' + tc.id + '.out' },
+                    tc.comparisonSystemName,
+                    !tc.exposeData
+                );
+            }),
+            info.time_limit
+        ));
+    }
 };
 
 /**
@@ -126,5 +251,45 @@ BuildManager.prototype.numExecutingBuilds = function () {
     return this._nBuilds;
 };
 
+/**
+ * Call when a build has started in the system
+ */
+BuildManager.prototype.notifyBuildStart = function () {
+    this._nBuilds++;
+};
+
+/**
+ * Call when a build has finished in the system
+ */
+BuildManager.prototype.notifyBuildEnd = function () {
+    this._nBuilds--;
+
+    if (this._notifyWhenDecreased) {
+        this.notifyBuildReady();
+        this._notifyWhenDecreased = BuildQueue.getQueueLength() > 0;
+    }
+};
+
+/**
+ * Used by the build queue. Notify the build manager
+ *  that there is a build ready to be performed.
+ */
+BuildManager.prototype.notifyBuildReady = function () {
+    if (this._nBuilds < config.buildConstraints.maxConcurrentTests) {
+        /** @type {BuildEntry} */
+        var toBuild = BuildQueue.pop();
+        this._performBuild(toBuild, function (err, res) {
+            // TODO KAM: What am I supposed to do here?
+        });
+    } else {
+        // TODO KAM: You know what you should also have? You should have a job run every so often that just makes
+        //  sure that everything is in line - that we haven't reached deadlock of some sort
+        this._notifyWhenDecreased = true;
+    }
+};
+
 module.exports.BuildManager = new BuildManager();
 module.exports.ERRORS = ERRORS;
+
+BuildQueue = require('../queue/buildQueue').BuildQueue;
+BuildSystem = require('./buildSystem').BuildSystem;

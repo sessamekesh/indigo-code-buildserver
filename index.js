@@ -11,6 +11,9 @@ var fs = require('fs');
 var config = require('./config');
 var RoutesList = require('./routes/routesList').RoutesList;
 
+// Set up our build and comparison systems...
+require('./systemsInit');
+
 // Routes...
 var routesList = new RoutesList();
 
@@ -28,14 +31,18 @@ routesList.addRoute(require('./routes/api/v1/build'), config.endpoints.BUILD);
 routesList.addRoute(require('./routes/api/v1/coffee'), config.endpoints.COFFEE);
 
 // Make sure the staging area exists...
-try {
-    fs.mkdirSync(config.buildStagingDirectory);
-} catch (e) {
-    // If the error is that the directory already exists, that's cool. Just ignore it, we're fine.
-    if (e.code != 'EEXIST') {
-        throw e;
+function makeSureExists(path) {
+    try {
+        fs.mkdirSync(path);
+    } catch (e) {
+        if (e.code != 'EEXIST') {
+            throw e;
+        }
     }
 }
+
+makeSureExists(config.buildStagingDirectory);
+makeSureExists(config.buildSandboxDirectory);
 
 var server = http.createServer(function (req, res) {
     var pathname = url.parse(req.url).pathname;
@@ -60,6 +67,7 @@ var server = http.createServer(function (req, res) {
     }
 });
 
+// Finally, listen.
 server.listen(config.port);
 
 console.log('----------- INDIGO CODE BUILDSERVER -----------');

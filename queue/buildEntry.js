@@ -12,6 +12,9 @@
  * @constructor
  */
 var BuildEntry = function(buildSystemName, comparisonSystemsRequired, packageFileData) {
+    /** @type {number} */
+    this.buildID = 'BUILD_' + (Math.random() * 8675309).toFixed(); // TODO KAM: You can do better at making a unique ID...
+
     /** @type {string} */
     this.buildSystemName = buildSystemName;
 

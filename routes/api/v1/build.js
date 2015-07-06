@@ -6,9 +6,12 @@ var Route = require('../../route').Route;
 var BuildEntry = require('../../../queue/buildEntry').BuildEntry;
 var BuildQueue = require('../../../queue/buildQueue').BuildQueue;
 var BuildQueueErrors = require('../../../queue/buildQueue').ERRORS;
-var routesList = require('../../../index').routesList;
+var ResultsStore;
+var ResultsStoreErrors;
+var routesList;
 var config = require('../../../config');
 var fs = require('fs');
+var url = require('url');
 
 var endpoint = new Route('/api/v1/build');
 
@@ -17,8 +20,17 @@ var endpoint = new Route('/api/v1/build');
  * Requires one file, the package file. It will be a tarball with all the required assets for the build.
  */
 endpoint.post([], ["buildSystemName", "comparisonSystemsRequired"], ["buildPackage"], function (req, res, postData, files) {
+
+    // Make sure that postData.comparisonSystemsRequired is an array, not just a string
+    if (Object.prototype.toString.call(postData.comparisonSystemsRequired) === '[object String]') {
+        postData.comparisonSystemsRequired = [postData.comparisonSystemsRequired];
+    }
+
+    /** @type {BuildEntry} */
+    var buildEntry = new BuildEntry(postData.buildSystemName, postData.comparisonSystemsRequired, files['buildPackage']);
+
     /** @type {boolean|Error|number} */
-    var result = BuildQueue.push(new BuildEntry(postData.buildSystemName, postData.comparisonSystemsRequired, files['buildPackage']));
+    var result = BuildQueue.push(buildEntry);
 
     /** @type {number} */
     var i;
@@ -26,7 +38,12 @@ endpoint.post([], ["buildSystemName", "comparisonSystemsRequired"], ["buildPacka
     if (result === true) {
         // Hooray! It has been added to the build queue!
         res.writeHead(202, {'Content-Type': 'application/json'});
-        res.write(JSON.stringify({'success': true, 'queueSize': BuildQueue.getQueueLength()}));
+        res.write(JSON.stringify(
+            {
+                'success': true,
+                'queueSize': BuildQueue.getQueueLength(),
+                'results': routesList.getRoute(config.endpoints.BUILD).reverseRoute({ id: buildEntry.buildID })
+            }));
         res.end();
     } else {
         // Something went wrong. Success is type error in this case
@@ -69,6 +86,67 @@ endpoint.post([], ["buildSystemName", "comparisonSystemsRequired"], ["buildPacka
 /**
  * Request information about the given build.
  */
-endpoint.get(["id"], null);
+endpoint.get(["id"], function (req, res) {
+    var queryparams = url.parse(req.url, true).query || {};
+
+    ResultsStore.getResult(queryparams.id, function (err, buildResult) {
+        if (err) {
+            if (err.message = ResultsStoreErrors.BUILD_ID_UNKNOWN) {
+                // Error: build ID not recognized
+                res.writeHead(404, {'Content-Type': 'application/json'});
+                res.write(JSON.stringify({
+                    'error': 'No build with the given ID found. Perhaps it timed out?'
+                }));
+                res.end();
+            } else {
+                // Error: Unknown
+                res.writeHead(500, {'Content-Type': 'application/json'});
+                res.write(JSON.stringify({
+                    'error': 'An unknown error occurred. Please check the server logs.'
+                }));
+                res.end();
+                console.log('routes/api/v1/build.js: Unexpected error occurred: ' + JSON.stringify(err));
+            }
+        } else {
+            // Result found, buildResult available
+            res.writeHead(200, {'Content-Type': 'application/json'});
+            res.write(JSON.stringify({
+                resultCode: buildResult.result,
+                result: getStandardEnumValue(buildResult.result),
+                notes: buildResult.notes,
+                optionalParams: buildResult.optionalParams
+            }));
+            res.end();
+        }
+    });
+});
+
+/**
+ * Returns the API v0.1.1 standard value given the result from the build system.
+ * @param resultVal {string} The shorthand code used, non-standard usually
+ * @return {string} The proper, defined, value
+ */
+function getStandardEnumValue(resultVal) {
+    switch (resultVal) {
+        case config.BUILD_RESULT.BUILD_ERROR:
+            return 'BUILD_ERROR';
+        case config.BUILD_RESULT.CORRECT_ANSWER:
+            return 'CORRECT_ANSWER';
+        case config.BUILD_RESULT.INTERNAL_SERVER_ERROR:
+            return 'INTERNAL_SERVER_ERROR';
+        case config.BUILD_RESULT.RUNTIME_ERROR:
+            return 'RUNTIME_ERROR';
+        case config.BUILD_RESULT.TIME_LIMIT_EXCEEDED:
+            return 'TIME_LIMIT_EXCEEDED';
+        case config.BUILD_RESULT.WRONG_ANSWER:
+            return 'WRONG_ANSWER';
+        default:
+            return 'UNKNOWN_CODE';
+    }
+}
 
 module.exports = endpoint;
+
+routesList = require('../../../index').routesList;
+ResultsStore = require('../../../build/resultsStore').ResultsStore;
+ResultsStoreErrors = require('../../../build/resultsStore').ERRORS;

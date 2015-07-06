@@ -30,7 +30,7 @@ var ComparisonSystem = function (comparisonSystemID, comparisonSystemName, notes
     /** @type {string} */
     this.comparisonSystemNotes = notes;
 
-    /** @type {function} */
+    /** @type {function(File, File, File, function(rsl: BuildResult))} */
     this.compare = compare;
 };
 
