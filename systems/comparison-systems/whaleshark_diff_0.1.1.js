@@ -14,7 +14,7 @@
 var ComparisonSystem = require('../../build/comparisonSystem').ComparisonSystem;
 var async = require('async');
 
-var BuildResult = require('../../build/results').BuildResult;
+var BuildResult = require('../../build/buildResult').BuildResult;
 var ResultsEnum = require('../../config').BUILD_RESULT;
 var fs = require('fs');
 
@@ -84,7 +84,7 @@ function compare (inFile, expectedFile, outputFile, cb) {
                 outputLine = outputLines[i] || '';
 
                 if (expectedLine !== outputLine) {
-                    cb(new BuildResult(
+                    cb(null, new BuildResult(
                         ResultsEnum.WRONG_ANSWER,
                         'Line ' + i + '\nExpected: \'' + expectedLine + '\'\nActual: \'' + outputLine + '\''
                     ));
@@ -96,7 +96,7 @@ function compare (inFile, expectedFile, outputFile, cb) {
             if (passed) {
                 cb(null, new BuildResult(
                     ResultsEnum.CORRECT_ANSWER,
-                    'All tests passed!'
+                    'Test passed!'
                 ));
             }
         }

@@ -5,7 +5,7 @@
  */
 
 var config = require('../config');
-var BuildResult = require('./results').BuildResult;
+var BuildResult = require('./buildResult').BuildResult;
 
 var ERRORS = {
     BUILD_ID_TAKEN: 'The provided build ID has already been taken',

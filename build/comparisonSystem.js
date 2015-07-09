@@ -4,7 +4,7 @@
  * Comparison system, used to compare actual versus expected test results
  */
 
-var BuildResult = require('./results').BuildResult;
+var BuildResult = require('./buildResult').BuildResult;
 
 /**
  * An instance of this class will compare actual versus expected test results using the 'compare' method provided

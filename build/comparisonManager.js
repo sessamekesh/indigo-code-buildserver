@@ -3,7 +3,7 @@
  */
 
 var ComparisonSystem = require('./comparisonSystem').ComparisonSystem;
-var BuildResult = require('./results').BuildResult;
+var BuildResult = require('./buildResult').BuildResult;
 
 var ERRORS = {
     ID_NOT_AVAILABLE: 'The comparison system ID has already been taken',

@@ -7,25 +7,34 @@
  */
 
 var TestCaseDescription = require('./testCaseDescription').TestCaseDescription;
-var BuildResult = require('./results').BuildResult;
+var BuildResult = require('./buildResult').BuildResult;
+
+/** @type {ResultsStore} */
 var ResultsStore;
 var BuildResults = require('../config').BUILD_RESULT;
+
+/** @type {BuildManager} */
 var BuildManager;
+var config = require('../config');
+
+/** @type {ComparisonSystemManager} */
+var ComparisonSystemManager;
+var CompareErrors = require('./comparisonManager').ERRORS;
 
 /**
  * All build systems should be instances of this class
  * @param buildSystemID {string} Unique build system name (e.g., c++11_g++_4.18_whaleshark_0.1.1)
  * @param buildSystemName {string} Human readable build system name (e.g., C++11)
  * @param buildSystemNotes {string=} Notes that may be valuable for an admin to know. Included in v0.1 standard.
- * @param beforeBuild {function(sourceFile: File, testCases: Array<TestCaseDescription>, optionalParams: object, callback: function )|null}
+ * @param beforeBuild {function(sourceFile: File, testCases: Array<TestCaseDescription>, optionalParams: object, callback: Function)|Null}
  *  Method to call to prepare the build (compile steps, etc)
- * @param runTests {function(sourceFile: File, testCases: Array<TestCaseDescription>, optionalParams: object=, callback: function)}
- *  Method to call to execute the build. Optional parameters may be passed from the beforeBuild method
- * @param afterBuild {function(sourceFile: File, testCases: Array<TestCaseDescription>, optionalParams: object=, callback: function)|null}
+ * @param runTest {function(sourceFile: File, testCase: TestCaseDescription, timeLimit: Number, optionalParams: Object=, callback: Function)}
+ *  Method to call to run a single test. Optional parameters may be passed from the beforeBuild method
+ * @param afterBuild {function(sourceFile: File, testCases: Array<TestCaseDescription>, optionalParams: Object=, callback: Function)|Null}
  *  Method to call after the build. Optional parameters may be passed from the afterBuild method
  * @constructor
  */
-var BuildSystem = function(buildSystemID, buildSystemName, buildSystemNotes, beforeBuild, runTests, afterBuild) {
+var BuildSystem = function(buildSystemID, buildSystemName, buildSystemNotes, beforeBuild, runTest, afterBuild) {
     /**
      * @type {string}
      * @private
@@ -45,19 +54,19 @@ var BuildSystem = function(buildSystemID, buildSystemName, buildSystemNotes, bef
     this._buildSystemNotes = buildSystemNotes;
 
     /**
-     * @type {function(sourceFile: File, testCases: Array<TestCaseDescription>, optionalParams: object, callback: function)|null}
+     * @type {function(sourceFile: File, testCases: Array<TestCaseDescription>, optionalParams: Object, callback: Function)|Null}
      * @private
      */
     this._beforeBuild = beforeBuild;
 
     /**
-     * @type {function(sourceFile: File, testCases: Array<TestCaseDescription>, optionalParams: object, callback: function)}
+     * @type {function(sourceFile: File, testCase: TestCaseDescription, timeLimit: Number, optionalParams: Object=, callback: Function)}
      * @private
      */
-    this._runTests = runTests;
+    this._runTest = runTest;
 
     /**
-     * @type {function(sourceFile: File, testCases: Array<TestCaseDescription>, optionalParams: object=, callback: function)|null}
+     * @type {function(sourceFile: File, testCases: Array<TestCaseDescription>, optionalParams: object=, callback: Function)|Null}
      * @private
      */
     this._afterBuild = afterBuild;
@@ -74,12 +83,13 @@ var BuildSystem = function(buildSystemID, buildSystemName, buildSystemNotes, bef
  * @param sourceFile {File} Object containing file data about the source file
  * @param testCases {Array<TestCaseDescription>} Array of TestCaseDescription objects. Contains all files used for testing.
  * @param timeLimit {number} Time, in milliseconds, that an individual test case has to run
+ * @param onFinish {Function=} Callback to be invoked at the finish of the function. Contains the result. Optional.
  * @param optionalParams {object=} Put whatever here. This is for minor version additions - no major version functionality
  *                                should depend on this field. "Achievements", whatever, can go here.
  * @return {string} The Build ID of the build that is being performed
  */
-BuildSystem.prototype.performBuild = function (buildID, sourceFile, testCases, timeLimit, optionalParams) {
-    /** @type {string} Unique ID for this build - used in debugging only */
+BuildSystem.prototype.performBuild = function (buildID, sourceFile, testCases, timeLimit, onFinish, optionalParams) {
+    /** @type {BuildSystem} Unique ID for this build - used in debugging only */
     var me = this;
     console.log('(' + buildID + ') Build started using build system ' + this._buildSystemName + ' (' + this._buildSystemID + ')');
 
@@ -87,10 +97,6 @@ BuildSystem.prototype.performBuild = function (buildID, sourceFile, testCases, t
     BuildManager.notifyBuildStart();
 
     optionalParams = optionalParams || {};
-
-    // TODO KAM: This is bad, but right now I'm just passing in the time limit as an optional parameter
-    //  Because you have to change this anyways, why do extra work?
-    optionalParams.timeLimit = timeLimit;
 
     console.log('(' + buildID + ') Beginning pre-build steps...');
 
@@ -108,12 +114,103 @@ BuildSystem.prototype.performBuild = function (buildID, sourceFile, testCases, t
      * @param result {BuildResult=}            Result of the build (so far)
      */
     function afterFinishBeforeBuild (preBuildOptionalParams, result) {
+        /** @type {BuildResult|null} */
+        var lastTestResult;
+
+        /** @type {Object|null} */
+        var testOptionalParams;
+
         if (!result || (result && result.result == BuildResults.CORRECT_ANSWER)) {
             console.log('(' + buildID + ') Beginning tests...');
-            me._runTests(sourceFile, testCases, preBuildOptionalParams, afterRunTests);
+            performNextTest();
         } else {
+            console.log('(' + buildID + ') Build failed! ' + result.notes);
             ResultsStore.postResult(buildID, result);
             BuildManager.notifyBuildEnd();
+        }
+
+        function performNextTest(i) {
+            i = i || 0;
+
+            if (i >= testCases.length) {
+                // It would seem all tests have succeeded.
+                afterRunTests(
+                    new BuildResult(
+                        config.BUILD_RESULT.CORRECT_ANSWER,
+                        'Passed ' + i + '/' + testCases.length + ' test cases!'
+                            + (!!(testOptionalParams || {})['customMessage'] ? ('\n' + testOptionalParams['customMessage']) : '') // TODO KAM: I loved having ownership of message generation in the specific build module... Put it back!
+                    ),
+                    testOptionalParams || {}
+                );
+            } else {
+                me._runTest(
+                    sourceFile,
+                    testCases[i],
+                    timeLimit,
+                    testOptionalParams,
+                    function (runtimeResult, outputFile, resultOptionalParams) {
+                        if (runtimeResult.result === config.BUILD_RESULT.RUNTIME_ERROR) {
+                            // A runtime error occurred, send back appropriate error message
+                            console.log('(' + buildID + ') Test failed (runtime error): ' + runtimeResult.notes);
+                            afterRunTests(
+                                new BuildResult(
+                                    config.BUILD_RESULT.RUNTIME_ERROR,
+                                    'Error on test ' + i + ' of ' + testCases.length
+                                    + testCases[i].hideData
+                                        ? ' (no data available, please review logs)'
+                                        : ': ' + runtimeResult.notes,
+                                    runtimeResult.optionalParams
+                                ),
+                                testOptionalParams || {}
+                            );
+                        } else {
+                            // No error, perform comparison
+                            ComparisonSystemManager.performComparison(
+                                testCases[i].comparisonSystemName,
+                                testCases[i].inFile,
+                                testCases[i].outFile,
+                                outputFile,
+                                function (comparisonErr, comparisonResult) {
+                                    if (comparisonErr) {
+                                        if (comparisonErr.message === CompareErrors.ID_NOT_RECOGNIZED) {
+                                            lastTestResult = new BuildResult(
+                                                config.BUILD_RESULT.INTERNAL_SERVER_ERROR,
+                                                'Malformed test case metadata - invalid comparison system ID - notify administrator to check logs!'
+                                            );
+                                            console.log('(' + buildID + ') ERROR: Malformed test case data, no comparison system by name \'' + testCases[i].comparisonSystemName + '\'')
+                                            console.log('-- Test case data: ' + JSON.stringify(testCases[i]));
+                                        } else {
+                                            lastTestResult = new BuildResult(
+                                                config.BUILD_RESULT.INTERNAL_SERVER_ERROR,
+                                                'Unknown error performing tests. Notify administrator to check logs!'
+                                            );
+                                            console.log('(' + buildID + ') Unknown error performing test!');
+                                            console.log('-- Error data: ' + JSON.stringify(comparisonErr));
+                                            console.log('-- Test case data: ' + JSON.stringify((testCases[i])));
+                                        }
+                                        afterRunTests(lastTestResult, testOptionalParams);
+                                    } else {
+                                        // If the result was a pass, continue on to the next test case...
+                                        //  Otherwise, pass the result back up the line.
+                                        if (comparisonResult.result === config.BUILD_RESULT.CORRECT_ANSWER) {
+                                            testOptionalParams = resultOptionalParams || testOptionalParams;
+                                            lastTestResult = runtimeResult;
+                                            performNextTest(i + 1);
+                                        } else {
+                                            // Raw configuration message will be sent here.
+                                            //  Perhaps in future versions, you should limit this (maybe an optionalParam?)
+                                            afterRunTests(
+                                                comparisonResult,
+                                                lastTestResult.optionalParams || testOptionalParams
+                                            );
+                                        }
+                                    }
+                                }
+                            );
+                        }
+                    }
+                );
+            }
         }
     }
 
@@ -125,10 +222,14 @@ BuildSystem.prototype.performBuild = function (buildID, sourceFile, testCases, t
      */
     function afterRunTests (result, optionalParamsFromTest) {
         console.log('(' + buildID + ') Beginning post-build steps and notifying the results store');
+        console.log('(' + buildID + ') Result: ' + JSON.stringify(result));
         me._afterBuild && me._afterBuild(sourceFile, testCases, optionalParamsFromTest);
 
         ResultsStore.postResult(buildID, result);
         BuildManager.notifyBuildEnd();
+
+        // Also clean up the submission and staging areas here, now that we're done with the data...
+        onFinish && onFinish(result, optionalParamsFromTest);
     }
 
     return buildID;
@@ -159,3 +260,4 @@ module.exports.BuildSystem = BuildSystem;
 
 ResultsStore = require('./resultsStore').ResultsStore;
 BuildManager = require('./buildManager').BuildManager;
+ComparisonSystemManager = require('./comparisonManager').ComparisonSystemManager;

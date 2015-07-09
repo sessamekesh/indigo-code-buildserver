@@ -23,6 +23,7 @@ var BuildEntry = require('../queue/buildEntry').BuildEntry;
 var config = require('../config');
 var tar = require('tar-fs');
 var fs = require('fs');
+var rimraf = require('rimraf');
 var TestCase = require('./testCaseDescription').TestCaseDescription;
 var BuildQueue;
 
@@ -238,7 +239,12 @@ BuildManager.prototype._performBuild = function (buildEntry, cb) {
                     !tc.exposeData
                 );
             }),
-            info.time_limit
+            info.time_limit,
+            function (buildResult, optionalParams) {
+                // Delete the things!
+                rimraf(dir, function (err) { err && console.log('(' + buildEntry.buildID + ') Error deleting staging directory - ' + err.message); });
+                fs.unlink(buildEntry.packageFileData.path, function (err) { err && console.log('(' + buildEntry.buildID + ') Error deleting package file - ' + err.message); });
+            }
         ));
     }
 };
