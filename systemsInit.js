@@ -1,6 +1,9 @@
 /**
  * Created by Kamaron on 7/5/2015.
  *
+ * TODO KAM: Have each build system and comparison system also have a "prereq" method, so it can make sure that the build server can load that module.
+ *    For instance, a C++ system will require g++ or MVCC installed. So, check to see if g++ --version or mvcc
+ *
  * This file initializes all of the build and comparison systems that this server supports.
  *
  * TO EXTEND THIS SERVER TO SUPPORT A LANGUAGE OR COMPARISON METHOD:

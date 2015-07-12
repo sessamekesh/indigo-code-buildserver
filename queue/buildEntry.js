@@ -36,7 +36,6 @@ var BuildEntry = function(buildSystemName, comparisonSystemsRequired, packageFil
 BuildEntry.prototype.isValid = function() {
     // TODO: Make sure that the buildManager supports all the requested build systems
     // TODO: Make sure that the buildManager supports all the requested comparison systems
-    // TODO: Make sure that there is actually a file at the location packageFileURI
 
     // If all conditions pass, return true and carry on
     return true;

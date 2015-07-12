@@ -15,8 +15,6 @@
  * - Maintain a registry of valid comparisonSystems
  */
 
-// TODO KAM: You're never cleaning up the sandbox directory! You need to do that!!!
-
 var BuildSystem;
 var ComparisonSystemManager = require('./comparisonManager').ComparisonSystemManager;
 var BuildEntry = require('../queue/buildEntry').BuildEntry;
