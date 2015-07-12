@@ -59,7 +59,8 @@ language we could rapidly get working cross platform and without very much confi
 to do this kind of thing on Windows, which is the system under which this product is being developed primarily (though it is
 intended to be used on a Linux machine, for simplicity of configuration).
 
-To add a new build system
+To add a new build system...
+
 1 - Add a new file (traditionally named the unique name of your build system) in the `/systems/build-systems` directory
 2 - At the top of the system (either before or immediately after all `require` statements), place
   * The `ID` of the system (unique identifier, we use `whaleshark_<language>_<API_version>`
