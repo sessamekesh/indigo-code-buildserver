@@ -72,11 +72,11 @@ ComparisonSystemManager.prototype.exists = function (systemID) {
  * @return {null|object}
  */
 ComparisonSystemManager.prototype.getMetadata = function (systemID) {
-    if (this._comparisonSystemIDs[systemID]) {
+    if (this._comparisonSystems[systemID]) {
         return {
             id: this._comparisonSystems[systemID].comparisonSystemID,
-            name: this._comparisonSystemIDs[systemID].comparisonSystemName,
-            description: this._comparisonSystemIDs[systemID].comparisonSystemNotes
+            name: this._comparisonSystems[systemID].comparisonSystemName,
+            description: this._comparisonSystems[systemID].comparisonSystemNotes
         };
     } else {
         return null;
