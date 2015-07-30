@@ -26,6 +26,7 @@ var CompareErrors = require('./comparisonManager').ERRORS;
  * @param buildSystemID {string} Unique build system name (e.g., c++11_g++_4.18_whaleshark_0.1.1)
  * @param buildSystemName {string} Human readable build system name (e.g., C++11)
  * @param buildSystemNotes {string=} Notes that may be valuable for an admin to know. Included in v0.1 standard.
+ * @param validateCanUseSync {function(): boolean} Synchronous test to see if the build systems is supported on the server
  * @param beforeBuild {function(sourceFile: File, testCases: Array<TestCaseDescription>, optionalParams: object, callback: Function)|Null}
  *  Method to call to prepare the build (compile steps, etc)
  * @param runTest {function(sourceFile: File, testCase: TestCaseDescription, timeLimit: Number, optionalParams: Object=, callback: Function)}
@@ -34,7 +35,7 @@ var CompareErrors = require('./comparisonManager').ERRORS;
  *  Method to call after the build. Optional parameters may be passed from the afterBuild method
  * @constructor
  */
-var BuildSystem = function(buildSystemID, buildSystemName, buildSystemNotes, beforeBuild, runTest, afterBuild) {
+var BuildSystem = function(buildSystemID, buildSystemName, buildSystemNotes, validateCanUseSync, beforeBuild, runTest, afterBuild) {
     /**
      * @type {string}
      * @private
@@ -52,6 +53,11 @@ var BuildSystem = function(buildSystemID, buildSystemName, buildSystemNotes, bef
      * @private
      */
     this._buildSystemNotes = buildSystemNotes;
+
+    /**
+     * @type {function(): boolean}
+     */
+    this.validateSync = validateCanUseSync;
 
     /**
      * @type {function(sourceFile: File, testCases: Array<TestCaseDescription>, optionalParams: Object, callback: Function)|Null}

@@ -16,12 +16,42 @@
 var BuildManager = require('./build/buildManager').BuildManager;
 var ComparisonSystemManager = require('./build/comparisonManager').ComparisonSystemManager;
 
+/**
+ * @type {number|null}
+ */
+var i;
+
+/**
+ * @type {string|null}
+ */
+var buildSystemId;
+
+/**
+ * @type {BuildSystem|null}
+ */
+var buildSystem;
+
 //
 // BUILD SYSTEMS
 //
-BuildManager.register(require('./systems/build-systems/whaleshark_python-2.7.9_0.1.1').System);
+var buildSystemPaths = [
+    './systems/build-systems/whaleshark_python-2.7.9_0.1.1'
+];
+
+// Load all build systems...
+for (i = 0; i < buildSystemPaths.length; i++) {
+    buildSystem = /** @type {BuildSystem} */ require(buildSystemPaths[i]).System;
+    buildSystemId = /** @type {string} */ require(buildSystemPaths[i]).ID;
+    console.log('Testing support for build system ' + buildSystemId + '...');
+    if (buildSystem.validateSync()) {
+        console.log('... Supported!');
+        BuildManager.register(buildSystem);
+    } else {
+        console.log('... Not supported');
+    }
+}
 
 //
-// COMPARISON SYSTEMS
+// COMPARISON SYSTEMS (No validation required for comparison systems)
 //
 ComparisonSystemManager.registerComparisonSystem(require('./systems/comparison-systems/whaleshark_diff_0.1.1').System);

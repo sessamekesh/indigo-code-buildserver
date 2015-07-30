@@ -9,6 +9,7 @@ var BuildSystem = require('../../build/buildSystem').BuildSystem;
 var BuildResult = require('../../build/buildResult').BuildResult;
 var RESULTS = require('../../config').BUILD_RESULT;
 var exec = require('child_process').exec;
+var spawnSync = require('child_process').spawnSync;
 var fs = require('fs');
 
 var ID = 'whaleshark_python-2.7.9_0.1.1';
@@ -22,13 +23,29 @@ var NOTES = '';
 var beforeBuild = null;
 
 /**
+ * 'python --version' must equal 'Python 2.7.9' to use Python 2.7.9
+ * @return {boolean}
+ */
+var validateCanUseSync = function () {
+    try {
+        // Hack - Python 2.7.9 outputs version to stderr, not stdout.
+        //  See
+        var child = spawnSync('python', ['--version'], { timeout: 4000 });
+        return child.stderr && child.stderr.toString().trim() === 'Python 2.7.9';
+    } catch (e) {
+        console.log('Error checking for availability of buildsystem ' + ID + ': ' + e.message);
+        return false;
+    }
+};
+
+/**
  * "python SOURCE_FILE < input > output"
  * Then feed output and expected to comparison system (specified in testCases)
  * @param sourceFile {File} Source file data
  * @param testCase {TestCaseDescription} Description of the test case to run
  * @param timeLimit {Number} Time, in milliseconds, that this test has to run. 0=unlimited
  * @param optionalParams {Object|Null} (optional) Object with additional params to pass to this system
- * @param callback {function (result: BuildResult, ouputFile: File, optionalParams: Object)}
+ * @param callback {function (result: BuildResult, outputFile: File, optionalParams: Object)}
  *  Sends the build result (Runtime Error or Answer Correct), with the outputted file which will be compared
  *  with the BuildSystem.performBuild method.
  */
@@ -86,6 +103,7 @@ module.exports.System = new BuildSystem(
     ID,
     NAME,
     NOTES,
+    validateCanUseSync,
     beforeBuild,
     runTest,
     afterBuild
