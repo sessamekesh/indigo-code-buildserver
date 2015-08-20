@@ -31,7 +31,7 @@ var validateCanUseSync = function () {
         // Hack - Python 2.7.9 outputs version to stderr, not stdout.
         //  See
         var child = spawnSync('python', ['--version'], { timeout: 4000 });
-        return child.stderr && child.stderr.toString().trim() === 'Python 2.7.9';
+        return child.stderr && child.stderr.toString().trim().indexOf('Python 2.7.') >= 0;
     } catch (e) {
         console.log('Error checking for availability of buildsystem ' + ID + ': ' + e.message);
         return false;
