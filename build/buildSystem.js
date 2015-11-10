@@ -128,6 +128,7 @@ BuildSystem.prototype.performBuild = function (buildID, sourceFile, testCases, t
 
         if (!result || (result && result.result == BuildResults.CORRECT_ANSWER)) {
             console.log('(' + buildID + ') Beginning tests...');
+            testOptionalParams = preBuildOptionalParams;
             performNextTest();
         } else {
             console.log('(' + buildID + ') Build failed! ' + result.notes);
@@ -165,6 +166,16 @@ BuildSystem.prototype.performBuild = function (buildID, sourceFile, testCases, t
                                     + testCases[i].hideData
                                         ? ' (no data available, please review logs)'
                                         : ': ' + runtimeResult.notes,
+                                    runtimeResult.optionalParams
+                                ),
+                                testOptionalParams || {}
+                            );
+                        } else if (runtimeResult.result === config.BUILD_RESULT.INTERNAL_SERVER_ERROR) {
+                            console.log('(' + buildID + ') Test failed (internal server error): ' + runtimeResult.notes);
+                            afterRunTests(
+                                new BuildResult(
+                                    config.BUILD_RESULT.INTERNAL_SERVER_ERROR,
+                                    'Error on test ' + i + ' of ' + testCases.length  + ' - please review logs',
                                     runtimeResult.optionalParams
                                 ),
                                 testOptionalParams || {}
@@ -207,7 +218,7 @@ BuildSystem.prototype.performBuild = function (buildID, sourceFile, testCases, t
                                             //  Perhaps in future versions, you should limit this (maybe an optionalParam?)
                                             afterRunTests(
                                                 comparisonResult,
-                                                lastTestResult.optionalParams || testOptionalParams
+                                                (lastTestResult && lastTestResult.optionalParams) || testOptionalParams
                                             );
                                         }
                                     }
