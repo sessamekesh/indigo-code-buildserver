@@ -11,9 +11,6 @@ var fs = require('fs');
 var config = require('./config');
 var RoutesList = require('./routes/routesList').RoutesList;
 
-// Set up our build and comparison systems...
-require('./systemsInit');
-
 // Routes...
 var routesList = new RoutesList();
 
@@ -43,6 +40,9 @@ function makeSureExists(path) {
 
 makeSureExists(config.buildStagingDirectory);
 makeSureExists(config.buildSandboxDirectory);
+
+// Set up our build and comparison systems...
+require('./systemsInit');
 
 var server = http.createServer(function (req, res) {
     var pathname = url.parse(req.url).pathname;
