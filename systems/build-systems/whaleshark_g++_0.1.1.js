@@ -25,11 +25,12 @@ var NOTES = 'This build system does not care about which version of g++, so long
  *  name + '.exe' as the executable name.
  * @param sourceFile {File}
  * @param testCases {Array.<TestCaseDescription>}
+ * @param {string} originalFilename
  * @param optionalParams {object}
  * @param callback {function (preBuildOptionalParams, result)}
  function(optionalParams: object, callback: Function)
  */
-var beforeBuild = function (sourceFile, testCases, optionalParams, callback) {
+var beforeBuild = function (sourceFile, testCases, originalFilename, optionalParams, callback) {
 	// Rename to source.cc
 	var newLocation = sourceFile.path + '.cc';
 	var sourceDest = fs.createWriteStream(newLocation);
@@ -81,10 +82,11 @@ var beforeBuild = function (sourceFile, testCases, optionalParams, callback) {
  * @param sourceFile {File}
  * @param testCase {TestCaseDescription}
  * @param timeLimit {Number}
+ * @param {string} originalFilename
  * @param optionalParams {Object|null}
  * @param callback {function (result: BuildResult, outputFile: File, optionalParams: Object)}
  */
-var runTest = function (sourceFile, testCase, timeLimit, optionalParams, callback) {
+var runTest = function (sourceFile, testCase, timeLimit, originalFilename, optionalParams, callback) {
 	var outFileLocation = testCase.inFile.path + '-OUTPUT';
 	if (!optionalParams || !optionalParams.executableFile) {
 		callback(new BuildResult(
@@ -145,7 +147,7 @@ var validateCanUseSync = function () {
 	var finish = function () {
 		fs.unlink(sourcename, function(){});
 		fs.unlink(sourcename + '.exe', function () {});
-	}
+	};
 
 	try {
 		var sourcename = config.buildSandboxDirectory + '/' + ID + '.cc';

@@ -1,8 +1,8 @@
 /**
- * Created by Kamaron on 10/20/2015.
- * ID:    whaleshark_g++-4.9.2_0.1.1
- * NAME:  C++11
- * NOTES: (G++ 4.9.2)
+ * Created by Kamaron on 7/5/2015.
+ * ID:    whaleshark_python-2.7.9_0.1.1
+ * NAME:  Python 2.7
+ * NOTES:
  */
 
 var BuildSystem = require('../../build/buildSystem').BuildSystem;
@@ -12,42 +12,26 @@ var exec = require('child_process').exec;
 var spawnSync = require('child_process').spawnSync;
 var fs = require('fs');
 
-var ID = 'whaleshark_g++-4.9.2_0.1.1';
-var NAME = 'C++11';
-var NOTES = '(G++ 4.9.2)';
+var ID = 'whaleshark_python-2.7.9_0.1.1';
+var NAME = 'Python 2.7';
+var NOTES = '';
 
 /**
- * Compile the files, and generate the output used in the actual test running
- * @param sourceFile {File}
- * @param testCases {Array.<TestCaseDescription>}
- * @param {string} originalFilename
- * @param optionalParams {Object}
- * @param callback {Function}
+ * Python doesn't actually require anything to happen before the build...
+ * @type {null}
  */
-var beforeBuild = function(sourceFile, testCases, originalFilename, optionalParams, callback) {
-    exec(
-        'g++ -o ' + sourceFile.path + '.exe ' + sourceFile.path,
-        {
-            timeout: 5000
-        },
-        function (buildError, stdout, stderr) {
-            if (buildError) {
-                console.log('Error performing C++ build:', buildError);
-                callback(null, new BuildResult());
-            } else {
-            }
-        }
-    );
-};
+var beforeBuild = null;
 
 /**
- * 'g++ --version' must contain '4.9.2' on the first line
+ * 'python --version' must equal 'Python 2.7.9' to use Python 2.7.9
  * @return {boolean}
  */
 var validateCanUseSync = function () {
     try {
-        var child = spawnSync('g++', ['--version'], { timeout: 4000 });
-        return child.stderr && child.stderr.toString().trim().indexOf('4.9.2') >= 0;
+        // Hack - Python 2.7.9 outputs version to stderr, not stdout.
+        //  See
+        var child = spawnSync('python', ['--version'], { timeout: 4000 });
+        return child.stderr && child.stderr.toString().trim().indexOf('Python 2.7.') >= 0;
     } catch (e) {
         console.log('Error checking for availability of buildsystem ' + ID + ': ' + e.message);
         return false;
@@ -60,13 +44,12 @@ var validateCanUseSync = function () {
  * @param sourceFile {File} Source file data
  * @param testCase {TestCaseDescription} Description of the test case to run
  * @param timeLimit {Number} Time, in milliseconds, that this test has to run. 0=unlimited
- * @param {string} originalFilename
  * @param optionalParams {Object|Null} (optional) Object with additional params to pass to this system
  * @param callback {function (result: BuildResult, outputFile: File, optionalParams: Object)}
  *  Sends the build result (Runtime Error or Answer Correct), with the outputted file which will be compared
  *  with the BuildSystem.performBuild method.
  */
-var runTest = function (sourceFile, testCase, timeLimit, originalFilename, optionalParams, callback) {
+var runTest = function (sourceFile, testCase, timeLimit, optionalParams, callback) {
 
     var outFileLocation = testCase.inFile.path + '-OUTPUT'; // Eh... Could be more elaborate, if I wasn't lazy.
 

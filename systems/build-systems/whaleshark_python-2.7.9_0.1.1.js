@@ -44,12 +44,13 @@ var validateCanUseSync = function () {
  * @param sourceFile {File} Source file data
  * @param testCase {TestCaseDescription} Description of the test case to run
  * @param timeLimit {Number} Time, in milliseconds, that this test has to run. 0=unlimited
+ * @param {string} originalFilename
  * @param optionalParams {Object|Null} (optional) Object with additional params to pass to this system
  * @param callback {function (result: BuildResult, outputFile: File, optionalParams: Object)}
  *  Sends the build result (Runtime Error or Answer Correct), with the outputted file which will be compared
  *  with the BuildSystem.performBuild method.
  */
-var runTest = function (sourceFile, testCase, timeLimit, optionalParams, callback) {
+var runTest = function (sourceFile, testCase, timeLimit, originalFilename, optionalParams, callback) {
 
     var outFileLocation = testCase.inFile.path + '-OUTPUT'; // Eh... Could be more elaborate, if I wasn't lazy.
 

@@ -242,7 +242,8 @@ BuildManager.prototype._performBuild = function (buildEntry, cb) {
                 // Delete the things!
                 rimraf(dir, function (err) { err && console.log('(' + buildEntry.buildID + ') Error deleting staging directory - ' + err.message); });
                 fs.unlink(buildEntry.packageFileData.path, function (err) { err && console.log('(' + buildEntry.buildID + ') Error deleting package file - ' + err.message); });
-            }
+            },
+            info.original_filename
         ));
     }
 };

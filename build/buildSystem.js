@@ -92,9 +92,10 @@ var BuildSystem = function(buildSystemID, buildSystemName, buildSystemNotes, val
  * @param onFinish {Function=} Callback to be invoked at the finish of the function. Contains the result. Optional.
  * @param optionalParams {object=} Put whatever here. This is for minor version additions - no major version functionality
  *                                should depend on this field. "Achievements", whatever, can go here.
+ * @param {string} originalFilename Original filename of the submitted file
  * @return {string} The Build ID of the build that is being performed
  */
-BuildSystem.prototype.performBuild = function (buildID, sourceFile, testCases, timeLimit, onFinish, optionalParams) {
+BuildSystem.prototype.performBuild = function (buildID, sourceFile, testCases, timeLimit, onFinish, originalFilename, optionalParams) {
     /** @type {BuildSystem} Unique ID for this build - used in debugging only */
     var me = this;
     console.log('(' + buildID + ') Build started using build system ' + this._buildSystemName + ' (' + this._buildSystemID + ')');
@@ -107,7 +108,7 @@ BuildSystem.prototype.performBuild = function (buildID, sourceFile, testCases, t
     console.log('(' + buildID + ') Beginning pre-build steps...');
 
     if (this._beforeBuild) {
-        this._beforeBuild(sourceFile, testCases, optionalParams, afterFinishBeforeBuild);
+        this._beforeBuild(sourceFile, testCases, originalFilename, optionalParams, afterFinishBeforeBuild);
     } else {
         afterFinishBeforeBuild(optionalParams);
     }
@@ -154,6 +155,7 @@ BuildSystem.prototype.performBuild = function (buildID, sourceFile, testCases, t
                     sourceFile,
                     testCases[i],
                     timeLimit,
+                    originalFilename,
                     testOptionalParams,
                     function (runtimeResult, outputFile, resultOptionalParams) {
                         if (runtimeResult.result === config.BUILD_RESULT.RUNTIME_ERROR) {
