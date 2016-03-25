@@ -93,7 +93,7 @@ var runTest = function (sourceFile, testCase, timeLimit, optionalParams, callbac
 var afterBuild = function (sourceFile, testCases, optionalParams, callback) {
 
     for (var i = 0; i < testCases.length; i++) {
-        fs.unlink(testCases[i].inFile.path + '-OUTPUT');
+        fs.unlink(testCases[i].inFile.path + '-OUTPUT', function () {});
     }
 
     callback && callback();
