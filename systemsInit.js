@@ -36,7 +36,8 @@ var buildSystem;
 //
 var buildSystemPaths = [
     './systems/build-systems/whaleshark_python-2.7.9_0.1.1',
-    './systems/build-systems/whaleshark_g++_0.1.1'
+    './systems/build-systems/whaleshark_g++_0.1.1',
+    './systems/build-systems/whaleshark_java_0.1.1'
 ];
 
 // Load all build systems...
