@@ -161,7 +161,7 @@ BuildManager.prototype._performBuild = function (buildEntry, cb) {
     // Step 3: Unpack the package file
     fs.mkdir(dir);
     tarSource = fs.createReadStream(buildEntry.packageFileData.path);
-    tarDest = tar.extract(dir);
+    tarDest = tar.extract(dir, { dmode: 0555, fmode: 0444 });
     tarSource.pipe(tarDest);
     tarDest.on('finish', function () {
         step4();
