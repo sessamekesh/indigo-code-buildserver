@@ -47,6 +47,8 @@ require('./systemsInit');
 var server = http.createServer(function (req, res) {
     var pathname = url.parse(req.url).pathname;
 
+    console.log('Request: ', pathname);
+
     // Send request out to routing system for further action...
     var route = routesList.getRoute(pathname);
     if (route) {
