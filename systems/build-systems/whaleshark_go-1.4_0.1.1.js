@@ -1,7 +1,7 @@
 /**
  * Created by kamaron on 4/4/16.
  * ID:     whaleshark_go-1.4_0.1.1
- * Name:   Go 1.4
+ * Name:   Go 4.9
  * Notes:  Google Go programming language (compiled)
  */
 
@@ -16,7 +16,7 @@ var fs = require('fs');
 var config = require('../../config');
 
 var ID = 'whaleshark_go-1.4_0.1.1';
-var NAME = 'Go 1.4';
+var NAME = 'Go 4.9';
 var NOTES = 'Google Go programming language (compiled)';
 
 /**
@@ -146,7 +146,7 @@ var validateCanUseSync = function () {
     try {
         var child = spawnSync('go', ['version'], {timeout: 4000});
         var rsl = (child.stdout && child.stdout.toString()) || (child.stderr && child.stderr.toString());
-        return rsl.indexOf('go1.4.') >= 0;
+        return rsl.indexOf('4.9.') >= 0;
     } catch (e) {
         console.log('Error checking for availability of buildsystem ' + ID + ': ' + e.message);
         return false;
